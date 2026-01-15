@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IELTS Prep Center</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Hammer.js for swipe gestures -->
@@ -48,43 +50,55 @@
                 <button id="teacher-logout-btn">Logout</button>
             </header>
             
-            <!-- Group Management Section -->
-            <div id="group-management"></div>
-
-            <div class="card">
-                <h3>Controls</h3>
-                <button id="unlock-all-btn">Unlock Exercises</button>
-                <button id="speaking-session-btn">Start Speaking Session</button>
+            <!-- Views Container -->
+            <div id="materials-view" class="view">
+                <h3>Materials (A1-C1)</h3>
+                <div id="materials-list">
+                    <!-- Dynamic materials will go here -->
+                    <p>Loading all levels A1 to C1...</p>
+                </div>
             </div>
 
-            <div id="student-submissions" class="card">
-                <h3>Writing Submissions</h3>
-                <div id="submissions-list"></div>
+            <div id="groups-view" class="view hidden">
+                <div id="group-management"></div>
+                
+                <div class="card" style="margin-top:15px;">
+                    <h3>Register New Student</h3>
+                    <form id="register-student-form">
+                        <input type="email" id="reg-email" placeholder="Student Email" required style="margin-bottom:8px;">
+                        <input type="password" id="reg-password" placeholder="Temp Password" required style="margin-bottom:8px;">
+                        <button type="submit" style="width:100%">Create Student Account</button>
+                    </form>
+                </div>
             </div>
 
-            <div id="student-progress-list" class="card">
-                <h3>Student List</h3>
-                <!-- Student progress will be shown here -->
-            </div>
+            <!-- Teacher Bottom Nav -->
+            <nav class="bottom-nav">
+                <button class="nav-item active" onclick="showTeacherView('materials')">
+                    <i class="fas fa-book"></i>
+                    <span>Materials</span>
+                </button>
+                <button class="nav-item" onclick="showTeacherView('groups')">
+                    <i class="fas fa-users"></i>
+                    <span>Groups</span>
+                </button>
+            </nav>
         </section>
 
         <!-- Exercise Screen -->
         <section id="exercise-screen" class="screen hidden">
             <div id="timer-display">00:00</div>
             
-            <!-- Reading -->
             <div id="reading-container" class="swipe-container hidden">
                 <div id="passage" class="swipe-panel"></div>
                 <div id="questions" class="swipe-panel"></div>
             </div>
 
-            <!-- Listening -->
             <div id="listening-container" class="card hidden">
                 <p><strong>Listening Test:</strong> Answer based on the transcript read by the teacher.</p>
                 <div id="listening-questions"></div>
             </div>
 
-            <!-- Writing -->
             <div id="writing-container" class="card hidden">
                 <h3 id="writing-prompt-title">Writing Task</h3>
                 <p id="writing-prompt"></p>
@@ -94,20 +108,6 @@
 
             <button id="back-to-dash">Back to Dashboard</button>
         </section>
-
-        <!-- Speaking Session Overlay -->
-        <div id="speaking-overlay" class="screen hidden">
-            <h2>Speaking Evaluation</h2>
-            <div id="active-student">Student: <span id="speaking-student-name">-</span></div>
-            <div id="speaking-timer">00:00</div>
-            <div class="controls">
-                <button onclick="toggleSpeakingTimer()">Start/Pause</button>
-                <button onclick="closeSpeakingSession()">End Session</button>
-            </div>
-            <div class="criteria">
-                <p>Fluency | Lexical | Grammar | Pronunciation</p>
-            </div>
-        </div>
     </div>
 
     <!-- Scripts -->
@@ -116,6 +116,7 @@
     <script src="js/auth.js"></script>
     <script src="js/groups.js"></script>
     <script src="js/groupUI.js"></script>
+    <script src="js/sessions.js"></script>
     <script src="js/timer.js"></script>
     <script src="js/exercises.js"></script>
     <script src="js/charts.js"></script>

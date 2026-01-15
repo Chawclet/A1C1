@@ -1,5 +1,5 @@
 /**
- * Core application logic synchronized with the provided database schema.
+ * Core application logic - Restructured for Bottom Nav and Tabbed Views
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -34,41 +34,114 @@ async function initApp(user, role) {
     }
 }
 
-async function fetchExercises() {
-    const { data } = await supabaseClient
+/**
+ * TEACHER DASHBOARD LOGIC
+ */
+async function showTeacherDashboard(user) {
+    document.getElementById('teacher-dashboard').classList.remove('hidden');
+    
+    // Default view
+    showTeacherView('materials');
+    
+    // Load Teacher Data
+    loadAllMaterials();
+    if (typeof GroupUI !== 'undefined') {
+        GroupUI.renderTeacherGroups();
+    }
+}
+
+function showTeacherView(viewName) {
+    const materialsView = document.getElementById('materials-view');
+    const groupsView = document.getElementById('groups-view');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    // Toggle Views
+    if (viewName === 'materials') {
+        materialsView.classList.remove('hidden');
+        groupsView.classList.add('hidden');
+        navItems[0].classList.add('active');
+        navItems[1].classList.remove('active');
+    } else {
+        materialsView.classList.add('hidden');
+        groupsView.classList.remove('hidden');
+        navItems[0].classList.remove('active');
+        navItems[1].classList.add('active');
+    }
+}
+
+async function loadAllMaterials() {
+    const list = document.getElementById('materials-list');
+    const { data: materials, error } = await supabaseClient
         .from('materials')
         .select('*')
-        .eq('is_active', true);
-    return data || [];
+        .order('level', { ascending: true });
+
+    if (error) {
+        list.innerHTML = `<p class="error">Error loading materials: ${error.message}</p>`;
+        return;
+    }
+
+    list.innerHTML = '';
+    const levels = ['A1', 'A2', 'B1', 'B2', 'C1'];
+    
+    levels.forEach(lvl => {
+        const section = document.createElement('div');
+        section.className = 'card';
+        section.style.marginBottom = '15px';
+        section.innerHTML = `<h4>Level ${lvl}</h4><div id="lvl-${lvl}-list"></div>`;
+        list.appendChild(section);
+
+        const lvlList = section.querySelector(`#lvl-${lvl}-list`);
+        const filtered = materials.filter(m => m.level === lvl);
+        
+        if (filtered.length === 0) {
+            lvlList.innerHTML = '<p style="font-size:0.8rem; color:#999;">No lessons yet.</p>';
+        } else {
+            filtered.forEach(m => {
+                const btn = document.createElement('button');
+                btn.innerText = `[${m.type.toUpperCase()}] ${m.title}`;
+                btn.style.width = '100%';
+                btn.style.fontSize = '0.75rem';
+                btn.style.marginBottom = '5px';
+                btn.style.padding = '8px';
+                btn.onclick = () => renderExercise(m);
+                lvlList.appendChild(btn);
+            });
+        }
+    });
 }
 
 /**
- * STUDENT DASHBOARD
+ * STUDENT DASHBOARD LOGIC
  */
 async function showStudentDashboard(user) {
     const dash = document.getElementById('student-dashboard');
     dash.classList.remove('hidden');
     document.getElementById('student-name').innerText = user.email;
 
-    const exercises = await fetchExercises();
+    const { data: exercises } = await supabaseClient
+        .from('materials')
+        .select('*')
+        .eq('is_active', true);
+        
     const list = document.getElementById('exercise-list');
     list.innerHTML = '<h3>Available Lessons</h3>';
     
-    exercises.forEach(ex => {
-        const btn = document.createElement('button');
-        btn.innerText = `L${ex.lesson || ''} [${ex.level}] - ${ex.type.toUpperCase()}: ${ex.title}`;
-        btn.className = 'exercise-btn';
-        btn.style.width = "100%";
-        btn.style.marginBottom = "8px";
-        btn.onclick = () => renderExercise(ex);
-        list.appendChild(btn);
-    });
+    if (exercises) {
+        exercises.forEach(ex => {
+            const btn = document.createElement('button');
+            btn.innerText = `[${ex.level}] ${ex.type.toUpperCase()}: ${ex.title}`;
+            btn.className = 'exercise-btn';
+            btn.style.width = "100%";
+            btn.style.marginBottom = "8px";
+            btn.onclick = () => renderExercise(ex);
+            list.appendChild(btn);
+        });
+    }
 
-    // Load Groups for Student
     if (typeof GroupUI !== 'undefined') {
         GroupUI.renderStudentGroups(user.id);
     }
-
     loadStudentCharts(user.id);
 }
 
@@ -86,129 +159,7 @@ async function loadStudentCharts(userId) {
     }
 }
 
-/**
- * TEACHER DASHBOARD
- */
-async function showTeacherDashboard(user) {
-    const dash = document.getElementById('teacher-dashboard');
-    dash.classList.remove('hidden');
-
-    loadSubmissions();
-    
-    // Load Groups for Teacher
-    if (typeof GroupUI !== 'undefined') {
-        GroupUI.renderTeacherGroups();
-    }
-
-    const { data: students } = await supabaseClient
-        .from('users')
-        .select('id, role, created_at')
-        .eq('role', 'student');
-
-    const list = document.getElementById('student-progress-list');
-    list.innerHTML = '<h3>Registered Students</h3>';
-    
-    if (students) {
-        students.forEach(s => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.style.marginBottom = "10px";
-            card.innerHTML = `<p><strong>ID:</strong> ${s.id.substring(0,8)}... <br>Joined: ${new Date(s.created_at).toLocaleDateString()}</p>`;
-            list.appendChild(card);
-        });
-    }
-
-    document.getElementById('unlock-all-btn').onclick = async () => {
-        const { error } = await supabaseClient
-            .from('materials')
-            .update({ is_active: true })
-            .eq('is_active', false);
-        if (!error) {
-            alert('Lessons published!');
-            location.reload();
-        }
-    };
-}
-
-/**
- * SUBMISSION MANAGEMENT
- */
-async function loadSubmissions() {
-    const { data: subs, error } = await supabaseClient
-        .from('submissions')
-        .select(`
-            id,
-            user_id,
-            answer,
-            score,
-            users (
-                id,
-                role
-            )
-        `)
-        .is('score', null);
-
-    if (error) {
-        console.error("Error loading submissions:", error);
-        return;
-    }
-
-    const list = document.getElementById('submissions-list');
-    list.innerHTML = '';
-    
-    if (subs && subs.length > 0) {
-        subs.forEach(sub => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.style.marginBottom = "10px";
-            const userInfo = sub.users ? `User: ${sub.users.id.substring(0,8)} (${sub.users.role})` : 'Unknown User';
-            div.innerHTML = `
-                <p><strong>${userInfo}</strong></p>
-                <div style="background:#f9f9f9; padding:10px; border-radius:4px; font-size:0.9rem;">${sub.answer}</div>
-                <input type="number" id="score-${sub.id}" placeholder="Enter Score (0-9)" step="0.5" style="margin-top:10px;">
-                <button onclick="gradeSubmission('${sub.id}')" style="width:100%; margin-top:5px;">Submit Score</button>
-            `;
-            list.appendChild(div);
-        });
-    } else {
-        list.innerHTML = '<p>No pending submissions to grade.</p>';
-    }
-}
-
-async function gradeSubmission(subId) {
-    const score = document.getElementById(`score-${subId}`).value;
-    const { error } = await supabaseClient
-        .from('submissions')
-        .update({ score: parseFloat(score) })
-        .eq('id', subId);
-
-    if (!error) {
-        alert('Score submitted!');
-        loadSubmissions();
-    }
-}
-
-/**
- * STUDENT WRITING SUBMISSION
- */
-document.getElementById('submit-writing')?.addEventListener('click', async () => {
-    const text = document.getElementById('writing-input').value;
-    const { data: { user } } = await supabaseClient.auth.getUser();
-
-    const { error } = await supabaseClient
-        .from('submissions')
-        .insert([{ 
-            user_id: user.id, 
-            material_id: window.currentMaterialId, 
-            answer: text
-        }]);
-
-    if (!error) {
-        alert('Work submitted for grading!');
-        location.reload();
-    }
-});
-
+// Global functions
 function logout() {
     supabaseClient.auth.signOut().then(() => location.reload());
 }
@@ -216,8 +167,3 @@ function logout() {
 if (document.getElementById('logout-btn')) document.getElementById('logout-btn').onclick = logout;
 if (document.getElementById('teacher-logout-btn')) document.getElementById('teacher-logout-btn').onclick = logout;
 if (document.getElementById('back-to-dash')) document.getElementById('back-to-dash').onclick = () => location.reload();
-
-function renderExercise(ex) {
-    console.log("Rendering exercise:", ex);
-    window.currentMaterialId = ex.id;
-}

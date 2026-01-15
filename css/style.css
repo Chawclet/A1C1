@@ -4,6 +4,7 @@ body {
     padding: 0;
     background-color: #f8f9fa;
     color: #212529;
+    padding-bottom: 70px; /* Space for bottom nav */
 }
 
 #app {
@@ -58,7 +59,7 @@ button:hover {
     background-color: #0b5ed7;
 }
 
-input, textarea {
+input, textarea, select {
     padding: 12px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
@@ -67,6 +68,48 @@ input, textarea {
     box-sizing: border-box;
 }
 
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    color: #6c757d;
+    padding: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    width: 100%;
+}
+
+.nav-item.active {
+    color: #0d6efd;
+}
+
+.nav-item i {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+/* Specific Teacher view containers */
+#materials-view, #groups-view {
+    width: 100%;
+}
+
+/* Other existing styles */
 .swipe-container {
     position: relative;
     width: 100%;
@@ -98,39 +141,4 @@ input, textarea {
     text-align: center;
     color: #dc3545;
     font-family: monospace;
-}
-
-#speaking-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: white;
-    z-index: 1000;
-    padding: 40px 20px;
-    text-align: center;
-}
-
-.error {
-    color: #dc3545;
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-canvas {
-    max-width: 100%;
-    margin-top: 10px;
-}
-
-.question {
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-hr {
-    border: 0;
-    border-top: 1px solid #eee;
-    margin: 15px 0;
 }
