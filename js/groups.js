@@ -1,6 +1,6 @@
 /**
  * Data handling for Groups and Group Memberships
- * Updated to use 'student_id' instead of 'user_id'
+ * Updated to handle 'teacher_id' requirement and 'student_id' column
  */
 const Groups = {
     async fetchAllGroups() {
@@ -30,10 +30,18 @@ const Groups = {
     },
 
     async createGroup(name) {
+        // Get the current user ID for the teacher_id column
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
+
         const { data, error } = await supabaseClient
             .from('groups')
-            .insert([{ name }])
+            .insert([{ 
+                name: name,
+                teacher_id: user.id 
+            }])
             .select();
+        
         if (error) throw error;
         return data[0];
     },
