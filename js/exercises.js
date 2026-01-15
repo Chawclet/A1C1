@@ -2,7 +2,7 @@
  * Fetches all materials from the 'materials' table.
  */
 async function fetchExercises() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('materials')
         .select('*')
         .eq('is_active', true);

@@ -7,12 +7,11 @@ async function signIn(email, password) {
     errorDisplay.innerText = "Authenticating...";
     
     try {
-        // Check if supabase global exists
-        if (typeof supabase === 'undefined') {
-            throw new Error("Supabase variable is not defined. Check script loading order.");
+        if (typeof supabaseClient === 'undefined') {
+            throw new Error("supabaseClient is not initialized.");
         }
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email,
             password,
         });
@@ -24,7 +23,6 @@ async function signIn(email, password) {
         return data.user;
     } catch (err) {
         console.error("Auth Catch Error:", err);
-        // DISPLAY THE ACTUAL ERROR MESSAGE ON SCREEN
         errorDisplay.innerText = "Connection error: " + err.message;
         return null;
     }
@@ -32,7 +30,7 @@ async function signIn(email, password) {
 
 async function getUserRole(userId) {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('users')
             .select('role')
             .eq('id', userId)
@@ -46,7 +44,7 @@ async function getUserRole(userId) {
 }
 
 async function logout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     window.location.reload();
 }
 

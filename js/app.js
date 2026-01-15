@@ -4,10 +4,12 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            const role = await getUserRole(session.user.id);
-            initApp(session.user, role);
+        if (typeof supabaseClient !== 'undefined') {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                const role = await getUserRole(session.user.id);
+                initApp(session.user, role);
+            }
         }
     } catch (err) {
         console.error("Session check error:", err);
@@ -49,7 +51,7 @@ async function showStudentDashboard(user) {
 }
 
 async function loadStudentCharts(userId) {
-    const { data: charts } = await supabase
+    const { data: charts } = await supabaseClient
         .from('charts')
         .select('*')
         .eq('user_id', userId);
@@ -69,7 +71,7 @@ async function showTeacherDashboard(user) {
 
     loadSubmissions();
 
-    const { data: students } = await supabase
+    const { data: students } = await supabaseClient
         .from('users')
         .select('id, role, created_at')
         .eq('role', 'student');
@@ -88,7 +90,7 @@ async function showTeacherDashboard(user) {
     }
 
     document.getElementById('unlock-all-btn').onclick = async () => {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from('materials')
             .update({ is_active: true })
             .eq('is_active', false);
@@ -103,7 +105,7 @@ async function showTeacherDashboard(user) {
  * SUBMISSION MANAGEMENT
  */
 async function loadSubmissions() {
-    const { data: subs } = await supabase
+    const { data: subs } = await supabaseClient
         .from('submissions')
         .select(`
             id,
@@ -137,7 +139,7 @@ async function loadSubmissions() {
 
 async function gradeSubmission(subId) {
     const score = document.getElementById(`score-${subId}`).value;
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('submissions')
         .update({ score: parseFloat(score) })
         .eq('id', subId);
@@ -153,9 +155,9 @@ async function gradeSubmission(subId) {
  */
 document.getElementById('submit-writing')?.addEventListener('click', async () => {
     const text = document.getElementById('writing-input').value;
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('submissions')
         .insert([{ 
             user_id: user.id, 
