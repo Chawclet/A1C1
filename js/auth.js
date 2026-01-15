@@ -2,41 +2,66 @@
  * Handles user authentication using Supabase.
  */
 
-/**
- * Signs in the user and returns the user object.
- */
 async function signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    });
+    // Clear previous errors
+    const errorDisplay = document.getElementById('auth-error');
+    errorDisplay.innerText = "Authenticating...";
+    
+    console.log("Attempting sign in for:", email);
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password,
+        });
 
-    if (error) {
-        document.getElementById('auth-error').innerText = "Login failed: " + error.message;
+        if (error) {
+            console.error("Auth error:", error);
+            // Display detailed error message to UI
+            errorDisplay.innerText = `Login Error: ${error.message}`;
+            
+            // Helpful hints for common errors
+            if (error.status === 400) {
+                errorDisplay.innerText += " (Check if email/password is correct)";
+            } else if (error.status === 429) {
+                errorDisplay.innerText += " (Too many attempts. Wait a few minutes)";
+            }
+            return null;
+        }
+        
+        console.log("Sign in successful", data.user);
+        errorDisplay.innerText = "Login successful! Redirecting...";
+        return data.user;
+        
+    } catch (err) {
+        console.error("Critical error during auth:", err);
+        errorDisplay.innerText = `System Error: ${err.message || "Connection failed"}. Check console for details.`;
         return null;
     }
-    return data.user;
 }
 
-/**
- * Fetches the user's role from the 'users' table based on the schema.
- */
 async function getUserRole(userId) {
-    const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', userId)
-        .single();
+    try {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('role')
+            .eq('id', userId)
+            .single();
 
-    if (error) {
-        console.error('Error fetching role:', error);
-        return 'student'; // Default fallback
+        if (error) {
+            console.error('Role Fetch Error:', error);
+            // Don't block the user, but log it
+            return 'student'; 
+        }
+        return data.role;
+    } catch (err) {
+        console.error("Unexpected Role Error:", err);
+        return 'student';
     }
-    return data.role;
 }
 
 async function logout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     window.location.reload();
 }
 
