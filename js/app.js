@@ -16,6 +16,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+async function getUserRole(userId) {
+    const { data, error } = await supabaseClient
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+    return data?.role || 'student';
+}
+
 async function initApp(user, role) {
     document.getElementById('auth-section').classList.add('hidden');
     if (role === 'teacher') {
@@ -23,6 +32,14 @@ async function initApp(user, role) {
     } else {
         showStudentDashboard(user);
     }
+}
+
+async function fetchExercises() {
+    const { data } = await supabaseClient
+        .from('materials')
+        .select('*')
+        .eq('is_active', true);
+    return data || [];
 }
 
 /**
@@ -39,7 +56,7 @@ async function showStudentDashboard(user) {
     
     exercises.forEach(ex => {
         const btn = document.createElement('button');
-        btn.innerText = `L${ex.lesson} [${ex.level}] - ${ex.type.toUpperCase()}: ${ex.title}`;
+        btn.innerText = `L${ex.lesson || ''} [${ex.level}] - ${ex.type.toUpperCase()}: ${ex.title}`;
         btn.className = 'exercise-btn';
         btn.style.width = "100%";
         btn.style.marginBottom = "8px";
@@ -58,7 +75,9 @@ async function loadStudentCharts(userId) {
 
     if (charts && charts.length > 0) {
         const latest = charts[0];
-        renderProgressChart('progressChart', latest.data.labels, latest.data.values);
+        if (typeof renderProgressChart === 'function') {
+            renderProgressChart('progressChart', latest.data.labels, latest.data.values);
+        }
     }
 }
 
@@ -105,16 +124,25 @@ async function showTeacherDashboard(user) {
  * SUBMISSION MANAGEMENT
  */
 async function loadSubmissions() {
-    const { data: subs } = await supabaseClient
+    // Updated query to fetch related user data instead of materials
+    const { data: subs, error } = await supabaseClient
         .from('submissions')
         .select(`
             id,
             user_id,
             answer,
             score,
-            materials (title)
+            users (
+                id,
+                role
+            )
         `)
         .is('score', null);
+
+    if (error) {
+        console.error("Error loading submissions:", error);
+        return;
+    }
 
     const list = document.getElementById('submissions-list');
     list.innerHTML = '';
@@ -124,8 +152,10 @@ async function loadSubmissions() {
             const div = document.createElement('div');
             div.className = 'card';
             div.style.marginBottom = "10px";
+            // Display user info instead of material title
+            const userInfo = sub.users ? `User: ${sub.users.id.substring(0,8)} (${sub.users.role})` : 'Unknown User';
             div.innerHTML = `
-                <p><strong>Material:</strong> ${sub.materials.title}</p>
+                <p><strong>${userInfo}</strong></p>
                 <div style="background:#f9f9f9; padding:10px; border-radius:4px; font-size:0.9rem;">${sub.answer}</div>
                 <input type="number" id="score-${sub.id}" placeholder="Enter Score (0-9)" step="0.5" style="margin-top:10px;">
                 <button onclick="gradeSubmission('${sub.id}')" style="width:100%; margin-top:5px;">Submit Score</button>
@@ -171,6 +201,17 @@ document.getElementById('submit-writing')?.addEventListener('click', async () =>
     }
 });
 
-document.getElementById('logout-btn').onclick = logout;
-document.getElementById('teacher-logout-btn').onclick = logout;
-document.getElementById('back-to-dash').onclick = () => location.reload();
+function logout() {
+    supabaseClient.auth.signOut().then(() => location.reload());
+}
+
+if (document.getElementById('logout-btn')) document.getElementById('logout-btn').onclick = logout;
+if (document.getElementById('teacher-logout-btn')) document.getElementById('teacher-logout-btn').onclick = logout;
+if (document.getElementById('back-to-dash')) document.getElementById('back-to-dash').onclick = () => location.reload();
+
+function renderExercise(ex) {
+    // Placeholder for exercise rendering logic
+    console.log("Rendering exercise:", ex);
+    window.currentMaterialId = ex.id;
+    // ... logic to show exercise UI ...
+}
