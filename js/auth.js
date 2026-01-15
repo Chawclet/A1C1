@@ -7,6 +7,11 @@ async function signIn(email, password) {
     errorDisplay.innerText = "Authenticating...";
     
     try {
+        // Check if supabase global exists
+        if (typeof supabase === 'undefined') {
+            throw new Error("Supabase variable is not defined. Check script loading order.");
+        }
+
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -18,7 +23,9 @@ async function signIn(email, password) {
         }
         return data.user;
     } catch (err) {
-        errorDisplay.innerText = "Connection error. Check console.";
+        console.error("Auth Catch Error:", err);
+        // DISPLAY THE ACTUAL ERROR MESSAGE ON SCREEN
+        errorDisplay.innerText = "Connection error: " + err.message;
         return null;
     }
 }
