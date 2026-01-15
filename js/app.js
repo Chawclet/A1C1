@@ -2,6 +2,27 @@
  * Core application logic - Restructured for Bottom Nav and Tabbed Views
  */
 
+// Ensure functions are global for onclick handlers
+window.showTeacherView = function(viewName) {
+    const materialsView = document.getElementById('materials-view');
+    const groupsView = document.getElementById('groups-view');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    if (!materialsView || !groupsView) return;
+
+    if (viewName === 'materials') {
+        materialsView.classList.remove('hidden');
+        groupsView.classList.add('hidden');
+        if(navItems[0]) navItems[0].classList.add('active');
+        if(navItems[1]) navItems[1].classList.remove('active');
+    } else {
+        materialsView.classList.add('hidden');
+        groupsView.classList.remove('hidden');
+        if(navItems[0]) navItems[0].classList.remove('active');
+        if(navItems[1]) navItems[1].classList.add('active');
+    }
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         if (typeof supabaseClient !== 'undefined') {
@@ -38,10 +59,11 @@ async function initApp(user, role) {
  * TEACHER DASHBOARD LOGIC
  */
 async function showTeacherDashboard(user) {
-    document.getElementById('teacher-dashboard').classList.remove('hidden');
+    const dash = document.getElementById('teacher-dashboard');
+    if (dash) dash.classList.remove('hidden');
     
     // Default view
-    showTeacherView('materials');
+    window.showTeacherView('materials');
     
     // Load Teacher Data
     loadAllMaterials();
@@ -50,31 +72,15 @@ async function showTeacherDashboard(user) {
     }
 }
 
-function showTeacherView(viewName) {
-    const materialsView = document.getElementById('materials-view');
-    const groupsView = document.getElementById('groups-view');
-    const navItems = document.querySelectorAll('.nav-item');
-
-    // Toggle Views
-    if (viewName === 'materials') {
-        materialsView.classList.remove('hidden');
-        groupsView.classList.add('hidden');
-        navItems[0].classList.add('active');
-        navItems[1].classList.remove('active');
-    } else {
-        materialsView.classList.add('hidden');
-        groupsView.classList.remove('hidden');
-        navItems[0].classList.remove('active');
-        navItems[1].classList.add('active');
-    }
-}
-
 async function loadAllMaterials() {
     const list = document.getElementById('materials-list');
+    if (!list) return;
+
     const { data: materials, error } = await supabaseClient
         .from('materials')
         .select('*')
-        .order('level', { ascending: true });
+        .order('level', { ascending: true })
+        .order('lesson', { ascending: true });
 
     if (error) {
         list.innerHTML = `<p class="error">Error loading materials: ${error.message}</p>`;
@@ -85,27 +91,66 @@ async function loadAllMaterials() {
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1'];
     
     levels.forEach(lvl => {
-        const section = document.createElement('div');
-        section.className = 'card';
-        section.style.marginBottom = '15px';
-        section.innerHTML = `<h4>Level ${lvl}</h4><div id="lvl-${lvl}-list"></div>`;
-        list.appendChild(section);
+        const levelSection = document.createElement('div');
+        levelSection.className = 'level-container';
+        levelSection.innerHTML = `<h3 style="margin: 20px 0 10px 0; color: #0d6efd;">Level ${lvl}</h3>`;
+        list.appendChild(levelSection);
 
-        const lvlList = section.querySelector(`#lvl-${lvl}-list`);
-        const filtered = materials.filter(m => m.level === lvl);
+        const lvlMaterials = materials.filter(m => m.level === lvl);
         
-        if (filtered.length === 0) {
-            lvlList.innerHTML = '<p style="font-size:0.8rem; color:#999;">No lessons yet.</p>';
+        // Group by Lesson Number
+        const lessonsMap = {};
+        lvlMaterials.forEach(m => {
+            const lessonNum = m.lesson || 0;
+            if (!lessonsMap[lessonNum]) lessonsMap[lessonNum] = [];
+            lessonsMap[lessonNum].push(m);
+        });
+
+        const lessonNums = Object.keys(lessonsMap).sort((a, b) => a - b);
+        
+        if (lessonNums.length === 0) {
+            levelSection.innerHTML += '<p style="font-size:0.8rem; color:#999;">No lessons yet.</p>';
         } else {
-            filtered.forEach(m => {
-                const btn = document.createElement('button');
-                btn.innerText = `[${m.type.toUpperCase()}] ${m.title}`;
-                btn.style.width = '100%';
-                btn.style.fontSize = '0.75rem';
-                btn.style.marginBottom = '5px';
-                btn.style.padding = '8px';
-                btn.onclick = () => renderExercise(m);
-                lvlList.appendChild(btn);
+            lessonNums.forEach(num => {
+                const lessonData = lessonsMap[num];
+                const details = document.createElement('details');
+                details.className = 'card';
+                details.style.marginBottom = '10px';
+                details.style.padding = '10px';
+                
+                const summary = document.createElement('summary');
+                summary.style.fontWeight = 'bold';
+                summary.style.cursor = 'pointer';
+                summary.innerText = `Lesson ${num}`;
+                details.appendChild(summary);
+
+                const grid = document.createElement('div');
+                grid.style.display = 'grid';
+                grid.style.gridTemplateColumns = '1fr 1fr';
+                grid.style.gap = '8px';
+                grid.style.marginTop = '10px';
+
+                // We want 4 buttons: Reading, Listening, Writing, Speaking
+                const types = ['reading', 'listening', 'writing', 'speaking'];
+                types.forEach(type => {
+                    const material = lessonData.find(m => m.type.toLowerCase() === type);
+                    const btn = document.createElement('button');
+                    btn.innerText = type.charAt(0).toUpperCase() + type.slice(1);
+                    btn.style.padding = '10px';
+                    btn.style.fontSize = '0.8rem';
+                    
+                    if (material) {
+                        btn.onclick = () => renderExercise(material);
+                    } else {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.background = '#ccc';
+                    }
+                    grid.appendChild(btn);
+                });
+
+                details.appendChild(grid);
+                levelSection.appendChild(details);
             });
         }
     });
@@ -116,27 +161,29 @@ async function loadAllMaterials() {
  */
 async function showStudentDashboard(user) {
     const dash = document.getElementById('student-dashboard');
-    dash.classList.remove('hidden');
+    if (dash) dash.classList.remove('hidden');
     document.getElementById('student-name').innerText = user.email;
 
     const { data: exercises } = await supabaseClient
         .from('materials')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('lesson', { ascending: true });
         
     const list = document.getElementById('exercise-list');
-    list.innerHTML = '<h3>Available Lessons</h3>';
-    
-    if (exercises) {
-        exercises.forEach(ex => {
-            const btn = document.createElement('button');
-            btn.innerText = `[${ex.level}] ${ex.type.toUpperCase()}: ${ex.title}`;
-            btn.className = 'exercise-btn';
-            btn.style.width = "100%";
-            btn.style.marginBottom = "8px";
-            btn.onclick = () => renderExercise(ex);
-            list.appendChild(btn);
-        });
+    if (list) {
+        list.innerHTML = '<h3>Available Lessons</h3>';
+        if (exercises) {
+            exercises.forEach(ex => {
+                const btn = document.createElement('button');
+                btn.innerText = `[${ex.level}] ${ex.type.toUpperCase()}: ${ex.title}`;
+                btn.className = 'exercise-btn';
+                btn.style.width = "100%";
+                btn.style.marginBottom = "8px";
+                btn.onclick = () => renderExercise(ex);
+                list.appendChild(btn);
+            });
+        }
     }
 
     if (typeof GroupUI !== 'undefined') {
@@ -160,10 +207,14 @@ async function loadStudentCharts(userId) {
 }
 
 // Global functions
-function logout() {
+window.logout = function() {
     supabaseClient.auth.signOut().then(() => location.reload());
-}
+};
 
-if (document.getElementById('logout-btn')) document.getElementById('logout-btn').onclick = logout;
-if (document.getElementById('teacher-logout-btn')) document.getElementById('teacher-logout-btn').onclick = logout;
-if (document.getElementById('back-to-dash')) document.getElementById('back-to-dash').onclick = () => location.reload();
+const logoutBtn = document.getElementById('logout-btn');
+const teacherLogoutBtn = document.getElementById('teacher-logout-btn');
+const backToDashBtn = document.getElementById('back-to-dash');
+
+if (logoutBtn) logoutBtn.onclick = window.logout;
+if (teacherLogoutBtn) teacherLogoutBtn.onclick = window.logout;
+if (backToDashBtn) backToDashBtn.onclick = () => location.reload();
