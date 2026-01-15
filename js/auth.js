@@ -3,65 +3,43 @@
  */
 
 async function signIn(email, password) {
-    // Clear previous errors
     const errorDisplay = document.getElementById('auth-error');
     errorDisplay.innerText = "Authenticating...";
     
-    console.log("Attempting sign in for:", email);
-    
     try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
         if (error) {
-            console.error("Auth error:", error);
-            // Display detailed error message to UI
             errorDisplay.innerText = `Login Error: ${error.message}`;
-            
-            // Helpful hints for common errors
-            if (error.status === 400) {
-                errorDisplay.innerText += " (Check if email/password is correct)";
-            } else if (error.status === 429) {
-                errorDisplay.innerText += " (Too many attempts. Wait a few minutes)";
-            }
             return null;
         }
-        
-        console.log("Sign in successful", data.user);
-        errorDisplay.innerText = "Login successful! Redirecting...";
         return data.user;
-        
     } catch (err) {
-        console.error("Critical error during auth:", err);
-        errorDisplay.innerText = `System Error: ${err.message || "Connection failed"}. Check console for details.`;
+        errorDisplay.innerText = "Connection error. Check console.";
         return null;
     }
 }
 
 async function getUserRole(userId) {
     try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await supabase
             .from('users')
             .select('role')
             .eq('id', userId)
             .single();
 
-        if (error) {
-            console.error('Role Fetch Error:', error);
-            // Don't block the user, but log it
-            return 'student'; 
-        }
+        if (error) return 'student'; 
         return data.role;
     } catch (err) {
-        console.error("Unexpected Role Error:", err);
         return 'student';
     }
 }
 
 async function logout() {
-    await supabaseClient.auth.signOut();
+    await supabase.auth.signOut();
     window.location.reload();
 }
 

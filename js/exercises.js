@@ -1,11 +1,11 @@
 /**
- * Fetches all materials from the 'materials' table using the correct schema.
+ * Fetches all materials from the 'materials' table.
  */
 async function fetchExercises() {
     const { data, error } = await supabase
         .from('materials')
         .select('*')
-        .eq('is_active', true); // Only fetch active materials
+        .eq('is_active', true);
 
     if (error) {
         console.error('Error fetching materials:', error);
@@ -14,9 +14,6 @@ async function fetchExercises() {
     return data;
 }
 
-/**
- * Renders the exercise based on its type and schema structure.
- */
 function renderExercise(exercise) {
     const screen = document.getElementById('exercise-screen');
     const readingCont = document.getElementById('reading-container');
@@ -28,7 +25,6 @@ function renderExercise(exercise) {
     screen.classList.remove('hidden');
     document.getElementById('student-dashboard').classList.add('hidden');
 
-    // Content is stored in 'content' jsonb field
     const content = exercise.content;
 
     if (exercise.type === 'reading') {
@@ -45,12 +41,9 @@ function renderExercise(exercise) {
         writingCont.classList.remove('hidden');
         document.getElementById('writing-prompt-title').innerText = exercise.title;
         document.getElementById('writing-prompt').innerText = content.prompt || "Write your essay below.";
-        
-        // Save current material ID for submission
         window.currentMaterialId = exercise.id;
     }
 
-    // Use time_limit from database if available (minutes to seconds)
     const limit = exercise.time_limit ? exercise.time_limit * 60 : 1200;
     startTimer(limit, timerDisplay);
 }

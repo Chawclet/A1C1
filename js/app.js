@@ -3,10 +3,14 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        const role = await getUserRole(session.user.id);
-        initApp(session.user, role);
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            const role = await getUserRole(session.user.id);
+            initApp(session.user, role);
+        }
+    } catch (err) {
+        console.error("Session check error:", err);
     }
 });
 
@@ -27,7 +31,6 @@ async function showStudentDashboard(user) {
     dash.classList.remove('hidden');
     document.getElementById('student-name').innerText = user.email;
 
-    // Load Exercises from 'materials'
     const exercises = await fetchExercises();
     const list = document.getElementById('exercise-list');
     list.innerHTML = '<h3>Available Lessons</h3>';
@@ -42,7 +45,6 @@ async function showStudentDashboard(user) {
         list.appendChild(btn);
     });
 
-    // Load personal chart data from 'charts' table
     loadStudentCharts(user.id);
 }
 
@@ -53,7 +55,6 @@ async function loadStudentCharts(userId) {
         .eq('user_id', userId);
 
     if (charts && charts.length > 0) {
-        // Render the first chart as an example
         const latest = charts[0];
         renderProgressChart('progressChart', latest.data.labels, latest.data.values);
     }
@@ -66,10 +67,8 @@ async function showTeacherDashboard(user) {
     const dash = document.getElementById('teacher-dashboard');
     dash.classList.remove('hidden');
 
-    // Load all student submissions for evaluation
     loadSubmissions();
 
-    // Fetch student list from 'users' table
     const { data: students } = await supabase
         .from('users')
         .select('id, role, created_at')
@@ -88,7 +87,6 @@ async function showTeacherDashboard(user) {
         });
     }
 
-    // Ability to activate all materials
     document.getElementById('unlock-all-btn').onclick = async () => {
         const { error } = await supabase
             .from('materials')
@@ -105,7 +103,6 @@ async function showTeacherDashboard(user) {
  * SUBMISSION MANAGEMENT
  */
 async function loadSubmissions() {
-    // Join with materials to show the title
     const { data: subs } = await supabase
         .from('submissions')
         .select(`
@@ -115,7 +112,7 @@ async function loadSubmissions() {
             score,
             materials (title)
         `)
-        .is('score', null); // Teacher sees ungraded ones
+        .is('score', null);
 
     const list = document.getElementById('submissions-list');
     list.innerHTML = '';
