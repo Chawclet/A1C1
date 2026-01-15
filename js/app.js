@@ -64,6 +64,11 @@ async function showStudentDashboard(user) {
         list.appendChild(btn);
     });
 
+    // Load Groups for Student
+    if (typeof GroupUI !== 'undefined') {
+        GroupUI.renderStudentGroups(user.id);
+    }
+
     loadStudentCharts(user.id);
 }
 
@@ -89,6 +94,11 @@ async function showTeacherDashboard(user) {
     dash.classList.remove('hidden');
 
     loadSubmissions();
+    
+    // Load Groups for Teacher
+    if (typeof GroupUI !== 'undefined') {
+        GroupUI.renderTeacherGroups();
+    }
 
     const { data: students } = await supabaseClient
         .from('users')
@@ -124,7 +134,6 @@ async function showTeacherDashboard(user) {
  * SUBMISSION MANAGEMENT
  */
 async function loadSubmissions() {
-    // Updated query to fetch related user data instead of materials
     const { data: subs, error } = await supabaseClient
         .from('submissions')
         .select(`
@@ -152,7 +161,6 @@ async function loadSubmissions() {
             const div = document.createElement('div');
             div.className = 'card';
             div.style.marginBottom = "10px";
-            // Display user info instead of material title
             const userInfo = sub.users ? `User: ${sub.users.id.substring(0,8)} (${sub.users.role})` : 'Unknown User';
             div.innerHTML = `
                 <p><strong>${userInfo}</strong></p>
@@ -210,8 +218,6 @@ if (document.getElementById('teacher-logout-btn')) document.getElementById('teac
 if (document.getElementById('back-to-dash')) document.getElementById('back-to-dash').onclick = () => location.reload();
 
 function renderExercise(ex) {
-    // Placeholder for exercise rendering logic
     console.log("Rendering exercise:", ex);
     window.currentMaterialId = ex.id;
-    // ... logic to show exercise UI ...
 }
