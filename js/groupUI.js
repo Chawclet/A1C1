@@ -1,5 +1,6 @@
 /**
  * UI Rendering for Groups
+ * Updated to use 'student_id' instead of 'user_id'
  */
 const GroupUI = {
     async renderTeacherGroups() {
@@ -36,7 +37,7 @@ const GroupUI = {
                         ${g.group_memberships.map(m => `
                             <span style="background:#eee; padding:2px 5px; margin-right:5px; border-radius:3px;">
                                 ${m.users.id.substring(0,8)} 
-                                <button style="border:none; background:none; cursor:pointer; color:red;" onclick="GroupUI.handleRemoveMember('${g.id}','${m.user_id}')">×</button>
+                                <button style="border:none; background:none; cursor:pointer; color:red;" onclick="GroupUI.handleRemoveMember('${g.id}','${m.student_id}')">×</button>
                             </span>`).join('')}
                     </div>
                     <div style="display:flex; gap:5px;">

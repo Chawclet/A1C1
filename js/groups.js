@@ -1,5 +1,6 @@
 /**
  * Data handling for Groups and Group Memberships
+ * Updated to use 'student_id' instead of 'user_id'
  */
 const Groups = {
     async fetchAllGroups() {
@@ -8,8 +9,8 @@ const Groups = {
             .select(`
                 *,
                 group_memberships (
-                    user_id,
-                    users (id, role)
+                    student_id,
+                    users:student_id (id, role)
                 )
             `);
         if (error) throw error;
@@ -23,7 +24,7 @@ const Groups = {
                 group_id,
                 groups (*)
             `)
-            .eq('user_id', userId);
+            .eq('student_id', userId);
         if (error) throw error;
         return data.map(m => m.groups);
     },
@@ -48,7 +49,7 @@ const Groups = {
     async addMember(groupId, userId) {
         const { error } = await supabaseClient
             .from('group_memberships')
-            .insert([{ group_id: groupId, user_id: userId }]);
+            .insert([{ group_id: groupId, student_id: userId }]);
         if (error) throw error;
     },
 
@@ -57,12 +58,11 @@ const Groups = {
             .from('group_memberships')
             .delete()
             .eq('group_id', groupId)
-            .eq('user_id', userId);
+            .eq('student_id', userId);
         if (error) throw error;
     },
 
     async startLessonForGroup(groupId, lessonType) {
         alert(`Starting ${lessonType} for group ${groupId}`);
-        // Logic to toggle materials for this group specifically
     }
 };
